@@ -8,8 +8,11 @@ import bs4
 import time
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
+from insert import insert
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
     'Cookie': 'Hm_lvt_82698a74ed862e6a03fc9e4cbac594a6=1617780782; Hm_lvt_727d5904b141f326c9cb1ede703d1162=1617780782; access_token=cn-6494d550-a79c-4560-bf98-3c489fe44775; _ga=GA1.2.208285359.1617780860; _gid=GA1.2.424844335.1617780860; location_code=340000; gldjc_sessionid=7ff53203-fa02-4175-ab81-af3d46b2e801; loginUuid=7ff53203-fa02-4175-ab81-af3d46b2e801; Hm_lpvt_82698a74ed862e6a03fc9e4cbac594a6=1617842029; Hm_lpvt_727d5904b141f326c9cb1ede703d1162=1617842029'
@@ -22,9 +25,18 @@ headers1 = {
 }
 
 
+def get_proxy():
+    return requests.get("http://127.0.0.1:5000/get/").json()
+
+
+def delete_proxy(proxy):
+    requests.get("http://127.0.0.1:5010/delete/?proxy={}".format(proxy))
+
+proxy = get_proxy().get("proxy")
 
 def get_html(url,fordata):
-     html = requests.post(url,headers=headers, data=fordata,timeout=50)
+
+     html = requests.post(url,headers=headers, proxies={"http": "http://{}".format(proxy)}, data=fordata,timeout=50)
      if html.status_code == 200:
          print('页面获取成功')
          # print(html.text)
@@ -35,24 +47,6 @@ def get_html(url,fordata):
          html.close()
      return
 
-def insert(sql):
-    try:
-        driver = 'SQL Server Native Client 11.0'  # 因版本不同而异
-        server = '.'
-        user = 'sa'
-        password = '1'
-        database = '投资'
-
-        connect = pyodbc.connect(driver=driver, server=server, user=user, password=password, database=database)
-
-        cur = connect.cursor()
-        cur.execute(sql)
-        time.sleep(0.1)
-    except Exception as error:
-        connect.rollback()
-        print("数据插入失败!" + error)
-    cur.close()
-    connect.close()
 
 def parse_html(html):
     soup = bs4.BeautifulSoup(html, 'html.parser')
@@ -63,7 +57,7 @@ def parse_html(html):
                 href = a[50:-3]
                 url1 = 'http://tzxm.hbzwfw.gov.cn/sbglweb/xminfo?xmdm='+id+'&sxid='+href+'&xzqh=130000'
 
-                html1 = requests.get(url1, headers=headers1, timeout=50)
+                html1 = requests.get(url1, headers=headers1,proxies={"http": "http://{}".format(proxy)}, timeout=50)
                 if html1.status_code == 200:
                     # print('点击页面获取成功')
                     html1 = html1.text
@@ -101,7 +95,7 @@ def parse_html(html):
 if __name__ == '__main__':
     url = 'http://tzxm.hbzwfw.gov.cn/sbglweb/gsxxList'
 
-    for i in range(1,620):
+    for i in range(1,100):
         fordata = {
             'xzqh': '130400',
             'rows': '25',
